@@ -50,4 +50,4 @@ PROC IMPORT DATAFILE="/home/student/project/csv/Tax_info.csv"
 	DATAROW=2; 			/*첫째행은 컬럼명이라서 2번째부터 시작 */
 RUN;
 
-ㅇ
+DH수정한걸 dev에 넣기 
