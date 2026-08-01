@@ -49,3 +49,5 @@ PROC IMPORT DATAFILE="/home/student/project/csv/Tax_info.csv"
 	GUESSINGROWS=1000;  /*데이터 타입 1000개 행을 보고 타입예측*/
 	DATAROW=2; 			/*첫째행은 컬럼명이라서 2번째부터 시작 */
 RUN;
+
+ㅇ
