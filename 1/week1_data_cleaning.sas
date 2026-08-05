@@ -107,7 +107,7 @@ proc sql;
     where b.제품카테고리 is missing;
     title "2-6. Tax_info에 세율 없는 제품카테고리";
 quit;
-title;
+title; /*NOTE: No rows were selected.*/
 
 /* 2-7. 가입기간(Customer_info) 이상치 확인 - 음수/비정상 대값 여부 */
 proc means data=proj.cust_raw n nmiss min max mean;
