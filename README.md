@@ -1,5 +1,5 @@
 # sas_crm_pj
-# 이커머스 고객 생애주기 관리 프로젝트 — 주차별 계획
+# FM·군집·이탈예측을 아우르는 통합 CRM 분석 대시보드 — 주차별 계획
 
 > RFM × 군집분석 × 이탈예측 통합 마케팅 솔루션 (SAS 기반, 자격증 포트폴리오용 V2)
 > 데이터: Onlinesales_info / Customer_info / Discount_info / Marketing_info / Tax_info (5개 테이블)
