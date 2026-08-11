@@ -7,45 +7,45 @@
      Customer_info 가입기간, Marketing_info 날짜 중복
   ※ 아래 [존재 이유]는 모두 Week1 자체 목표("데이터 이해 및 정제")
     범위 안에서만 설명함 (2주차 이후 로직은 끌어오지 않음)
+  ※ import 매크로/테이블명은 week1_data_cleaning.sas(1-1)와 동일
 =============================================================*/
 
-%macro import_csv(file_name);
-    proc import datafile="/home/student/open/&file_name..csv"
-        out=proj.&file_name.
+%macro import_csv(path=, out=);
+    proc import datafile="&path."
+        out=&out.
         dbms=csv
         replace;
-        getnames=YES;
+        guessingrows=max;
     run;
-%mend import_csv;
-
-%import_csv(Customer_info);
-%import_csv(Discount_info);
-%import_csv(Marketing_info);
-%import_csv(Onlinesales_info);
-%import_csv(Tax_info);
+%mend;
+%import_csv(path=/home/student/open/Onlinesales_info.csv, out=proj.sales_raw);
+%import_csv(path=/home/student/open/Customer_info.csv,   out=proj.cust_raw);
+%import_csv(path=/home/student/open/Discount_info.csv,   out=proj.disc_raw);
+%import_csv(path=/home/student/open/Marketing_info.csv,  out=proj.mkt_raw);
+%import_csv(path=/home/student/open/Tax_info.csv,        out=proj.tax_raw);
 
 
 /* -------------------------------------------------------------
    1. Discount_info : 할인율 결측/이상치
    [존재 이유]
-   할인율은 Discount_info의 핵심 수치형 변수인데, 아직 한 번도
+   할인율은 disc_raw의 핵심 수치형 변수인데, 아직 한 번도
    기초통계를 낸 적이 없음. Week1 목표가 "5개 테이블 구조 파악 +
    결측치·이상치 탐지"이므로, 이 테이블도 다른 4개와 동일하게
    범위(음수/100% 초과 여부)를 확인해야 데이터 이해가 끝남
 ------------------------------------------------------------- */
-proc means data=proj.Discount_info n nmiss min max mean std;
+proc means data=proj.disc_raw n nmiss min max mean std;
     var 할인율;
     title "1. Discount_info - 할인율 기초 통계 (음수/100% 초과 여부 확인)";
 run;
 title;
 
-/* [존재 이유] Discount_info는 "월+제품카테고리" 단위로 설계된
+/* [존재 이유] disc_raw는 "월+제품카테고리" 단위로 설계된
    테이블이므로, 이 조합은 유일해야 정상임. 중복이 있다면
    그 자체로 원본 데이터의 설계 오류/중복 입력이므로 정제 전
    단계에서 짚고 넘어가야 함 */
 proc sql;
     select 월, 제품카테고리, count(*) as 중복건수
-    from proj.Discount_info
+    from proj.disc_raw
     group by 월, 제품카테고리
     having count(*) > 1;
     title "1-1. Discount_info 월+제품카테고리 중복 조합";
@@ -57,11 +57,11 @@ title;
    2. Marketing_info : 오프라인/온라인비용 결측/이상치
    [존재 이유]
    Onlinesales_info(수량/금액/배송료)는 Week1 원본 코드에서 이미
-   확인했지만, Marketing_info의 수치형 변수(비용)는 아직 안 함.
+   확인했지만, mkt_raw의 수치형 변수(비용)는 아직 안 함.
    같은 정제 단계에서 5개 테이블 모두 동일 수준으로 검증하는 게
    Week1 "정합성 체크"의 목표에 맞음
 ------------------------------------------------------------- */
-proc means data=proj.Marketing_info n nmiss min max mean std;
+proc means data=proj.mkt_raw n nmiss min max mean std;
     var 오프라인비용 온라인비용;
     title "2. Marketing_info - 오프라인/온라인비용 기초 통계";
 run;
@@ -75,7 +75,7 @@ proc sql;
         sum(case when 오프라인비용 < 0 then 1 else 0 end) as 오프라인비용_음수건수,
         sum(case when 온라인비용 < 0 then 1 else 0 end)   as 온라인비용_음수건수,
         sum(case when 오프라인비용 = 0 and 온라인비용 = 0 then 1 else 0 end) as 마케팅비용_0인날
-    from proj.Marketing_info;
+    from proj.mkt_raw;
     title "2-1. Marketing_info 비용 음수/0 건수";
 quit;
 title;
@@ -86,19 +86,19 @@ title;
    [존재 이유]
    week1_data_cleaning.sas 2-6에서 "제품카테고리가 Tax_info에
    없는 경우"는 확인했지만, 그건 Onlinesales_info 기준의 정합성
-   체크였고 Tax_info 자체의 GST 값(수치)은 아직 기초통계를
+   체크였고 tax_raw 자체의 GST 값(수치)은 아직 기초통계를
    낸 적이 없음. 5개 테이블 전체를 같은 수준으로 봐야 함
 ------------------------------------------------------------- */
-proc means data=proj.Tax_info n nmiss min max mean std;
+proc means data=proj.tax_raw n nmiss min max mean std;
     var GST;
     title "3. Tax_info - GST 기초 통계 (0~1 또는 0~100 범위 벗어나는지 확인)";
 run;
 title;
 
 /* [존재 이유] 제품카테고리당 세율은 1개여야 정상인 테이블
-   구조. 중복이 있다면 Discount_info와 마찬가지로 원본 데이터
+   구조. 중복이 있다면 disc_raw와 마찬가지로 원본 데이터
    자체의 설계 오류이므로 정제 전에 확인해야 함 */
-proc freq data=proj.Tax_info;
+proc freq data=proj.tax_raw;
     tables 제품카테고리 / nocum;
     title "3-1. Tax_info 제품카테고리 중복 여부 (카테고리당 세율 1개여야 정상)";
 run;
@@ -109,12 +109,12 @@ title;
    4. Customer_info : 범주형 변수 결측 (성별, 고객지역)
    ※ 가입기간(수치형)은 week1_data_cleaning.sas 2-7에서 이미 확인함
    [존재 이유]
-   week1_data_cleaning.sas는 Customer_info의 수치형 변수(가입기간)만
+   week1_data_cleaning.sas는 cust_raw의 수치형 변수(가입기간)만
    확인했고, 범주형 변수(성별, 고객지역)는 다루지 않음. Week1
    목표가 "5개 테이블의 결측치 탐지"이므로 같은 테이블 안에서도
    수치형·범주형 둘 다 봐야 데이터 이해가 끝남
 ------------------------------------------------------------- */
-proc freq data=proj.Customer_info;
+proc freq data=proj.cust_raw;
     tables 성별 고객지역 / missing nocum;
     title "4. Customer_info - 성별/고객지역 분포 및 결측(.) 확인";
 run;
@@ -141,8 +141,8 @@ title;
     title;
 %mend;
 
-%check_dup(ds=proj.Onlinesales_info, label=Onlinesales_info);
-%check_dup(ds=proj.Customer_info,    label=Customer_info);
-%check_dup(ds=proj.Discount_info,    label=Discount_info);
-%check_dup(ds=proj.Marketing_info,   label=Marketing_info);
-%check_dup(ds=proj.Tax_info,         label=Tax_info);
+%check_dup(ds=proj.sales_raw, label=Onlinesales_info);
+%check_dup(ds=proj.cust_raw,  label=Customer_info);
+%check_dup(ds=proj.disc_raw,  label=Discount_info);
+%check_dup(ds=proj.mkt_raw,   label=Marketing_info);
+%check_dup(ds=proj.tax_raw,   label=Tax_info);
